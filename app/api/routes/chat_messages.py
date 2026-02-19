@@ -15,7 +15,7 @@ router = APIRouter(tags=["chat-messages"])
 
 
 @router.post(
-    "/student-sessions/{session_id}/chat-messages",
+    "/student-session/{session_id}/chat-messages",
     response_model=list[ChatMessagePublic],
 )
 def send_chat_message(
@@ -60,7 +60,7 @@ def send_chat_message(
 
 
 @router.get(
-    "/student-sessions/{session_id}/chat-messages",
+    "/student-session/{session_id}/chat-messages",
     response_model=list[ChatMessagePublic],
 )
 def get_chat_messages(
