@@ -11,7 +11,6 @@ from gpt_teacher_db.gpt_teacher.models.chat_message import (
 from app.api.deps import SessionDep, CurrentStudentUser
 from app.cruds import chat_message as message_crud
 from app.cruds import student_session as session_crud
-from app.cruds import problem as problem_crud
 
 
 router = APIRouter(tags=["chat-messages"])
@@ -46,10 +45,6 @@ def send_chat_message(
 
     if not student_session.is_active:
         raise HTTPException(status_code=400, detail="Session is not active")
-    
-    problem = problem_crud.get_problem_by_id(session, agent_input.problem_id)
-    if not problem:
-        raise HTTPException(status_code=404, detail="Problem not found")
     
     if agent_input.create_student_message:
         user_message = message_crud.create_chat_message(session, agent_input.student_input, session_id)
