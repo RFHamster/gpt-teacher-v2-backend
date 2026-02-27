@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException
-from app.llm import generate_ai_response
 from app.agents.model import (
     generate_ai_response,
     AgentInput
