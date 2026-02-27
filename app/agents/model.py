@@ -1,22 +1,30 @@
-from langchain_groq import ChatGroq
+from pydantic import BaseModel
+from . import (
+    get_prompt,
+    get_model,
+    get_response
+)
 
-def get_model(student_code_complexity):
-    match student_code_complexity:
-        case "INICIANTE":   
-            return get_low_groq()
-        case "INTERMEDIARIO":
-            return get_mid_groq()
-        case "AVANCADO":
-            return get_high_groq()
+class AgentInput(BaseModel):
+    problem_title: str
+    problem_description: str
+    is_sandbox: bool
+    student_code: str
+    user_message: str
+    chat_history: list[dict[str, str]]
 
-
-def get_low_groq():
-    return ChatGroq(model="llama-3.1-8b-instant", temperature=0.7, max_tokens=1000)
+def generate_ai_response(student_session, user_message, problem, student_code):
+    prompt = get_prompt(
+        problem_title=problem.title, 
+        problem_description=problem.description, 
+        is_sandbox=problem.is_sandbox, 
+        student_code=student_code, 
+        user_message=user_message,
+        chat_history=student_session.chat_history
+    )
+    brain = get_model(TASK_DIFFICULTY = "LOW")
+    config = {"configurable": {"session_id": student_session.id}}
+    response = get_response(prompt, config, brain)
     
-def get_mid_groq():
-    return ChatGroq(model="mixtral-8x7b-32768", temperature=0.5, max_tokens=1500)   
-
-def get_high_groq():
-    return ChatGroq(model="llama-3.3-70b-versatile", temperature=0.3, max_tokens=2000) 
-
+    return response
 

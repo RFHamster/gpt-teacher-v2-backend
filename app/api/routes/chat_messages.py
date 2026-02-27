@@ -1,11 +1,14 @@
 from fastapi import APIRouter, HTTPException
 from app.llm import generate_ai_response
-from pydantic import BaseModel
+from app.agents.model import (
+    generate_ai_response,
+    AgentInput
+)
 
 from gpt_teacher_db.gpt_teacher.models.chat_message import (
     ChatMessage,
     ChatMessageCreate,
-    ChatMessagePublic,
+    ChatMessagePublic
 )
 
 from app.api.deps import SessionDep, CurrentStudentUser
@@ -14,13 +17,6 @@ from app.cruds import student_session as session_crud
 
 
 router = APIRouter(tags=["chat-messages"])
-
-
-class AgentInput(BaseModel):
-    problem_id: str
-    student_code: str
-    student_input: str
-    create_student_message: bool = True
 
 
 @router.post(
