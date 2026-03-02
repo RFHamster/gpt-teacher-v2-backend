@@ -1,8 +1,10 @@
 from fastapi import APIRouter, HTTPException
-from app.agents.model import (
+from app.agents.teacher_agent.model import (
     generate_ai_response,
     AgentInput
 )
+
+from gpt_teacher_db.gpt_teacher.models.problem import Problem
 
 from gpt_teacher_db.gpt_teacher.models.chat_message import (
     ChatMessage,
