@@ -1,10 +1,7 @@
 from fastapi import APIRouter, HTTPException
-from app.agents.teacher_agent.model import (
-    generate_ai_response,
-    AgentInput
-)
+from app.agents.teacher_agent.model import AgentInput
+from app.agents.teacher_agent.utils import generate_ai_response
 
-from gpt_teacher_db.gpt_teacher.models.problem import Problem
 
 from gpt_teacher_db.gpt_teacher.models.chat_message import (
     ChatMessage,
@@ -21,7 +18,7 @@ router = APIRouter(tags=["chat-messages"])
 
 
 @router.post(
-    "/call-agent/student-session/{session_id}",
+    "/call-agent/student-session/{session_id}/chat-messages",
     response_model=ChatMessagePublic,
 )
 def send_chat_message(
@@ -43,16 +40,9 @@ def send_chat_message(
     if not student_session.is_active:
         raise HTTPException(status_code=400, detail="Session is not active")
     
-    if agent_input.create_student_message:
-        user_message = message_crud.create_chat_message(session, agent_input.student_input, session_id)
-    else:
-        user_message = ChatMessage(
-            content=agent_input.student_input,
-            role="user",
-            student_session_id=session_id,
-        )
+    message_crud.create_chat_message(session, agent_input.student_input, session_id)    
 
-    ai_response_content = generate_ai_response(student_session, user_message, problem, agent_input.student_code)
+    ai_response_content = generate_ai_response(agent_input)
 
     ai_message_in = ChatMessageCreate(
         content=ai_response_content,
@@ -61,49 +51,6 @@ def send_chat_message(
     ai_message = message_crud.create_chat_message(session, ai_message_in, session_id)
 
     return ai_message
-    
-
-@router.post(
-    "/student-sessions/{session_id}/chat-messages",
-    response_model=list[ChatMessagePublic],
-)
-def send_chat_message(
-    session: SessionDep,
-    current_user: CurrentStudentUser,
-    session_id: str,
-    message_in: ChatMessageCreate,
-):
-    """
-    Envia mensagem (aluno envia, IA responde)
-    """
-    # Verifica se a sessão existe e pertence ao aluno
-    student_session = session_crud.get_student_session_by_id(session, session_id)
-    if not student_session:
-        raise HTTPException(status_code=404, detail="Session not found")
-
-    if student_session.student_id != str(current_user.id):
-        raise HTTPException(
-            status_code=403, detail="Not authorized to access this session"
-        )
-
-    if not student_session.is_active:
-        raise HTTPException(status_code=400, detail="Session is not active")
-
-    # Cria mensagem do usuário
-    user_message = message_crud.create_chat_message(session, message_in, session_id)
-
-    # Gerar resposta da IA
-    ai_response_content = generate_ai_response(student_session, user_message)
-
-    ai_message_in = ChatMessageCreate(
-        content=ai_response_content,
-        role="assistant",
-    )
-    ai_message = message_crud.create_chat_message(session, ai_message_in, session_id)
-
-    # Retorna ambas as mensagens (usuário + IA)
-    return [user_message, ai_message]
-
 
 @router.get(
     "/student-session/{session_id}/chat-messages",

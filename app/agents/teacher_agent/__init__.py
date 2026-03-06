@@ -1,21 +1,24 @@
-from app.agents import get_prompt
-from enum import Enum
+from app.agents import get_model_by_difficulty
+from app.agents.teacher_agent.prompt import SYSTEM_PROMPT
+from langchain_core.prompt_values import ChatPromptValue
+from langchain_core.language_models import BaseChatModel
+from langchain.agents import create_agent
+from app.agents.teacher_agent.model import AgentInput
 
-class GroqModels(str, Enum):
-    LLAMA_3_3_8b = "llama-3.3-8b"
-    LLAMA_3_3_70b_VERSATILE = "llama-3.3-70b-versatile"
-    MIXTRAL_8X7B_32768 = "mixtral-8x7b-32768"
+def get_prompt(agent_input: AgentInput) -> ChatPromptValue:
+    return SYSTEM_PROMPT.invoke({
+        "problem_title": agent_input.problem_title,
+        "problem_description": agent_input.problem_description,
+        "is_sandbox": agent_input.is_sandbox,
+        "student_code": agent_input.student_code,
+        "user_message": agent_input.user_message,
+        "chat_history": agent_input.chat_history
+    })
 
-MODEL_BY_DIFICULTY = {
-    'LOW': GroqModels.LLAMA_3_3_8b,
-    'MEDIUM': GroqModels.LLAMA_3_3_70b_VERSATILE,
-    'HIGH': GroqModels.MIXTRAL_8X7B_32768
-}
-
-def get_groq_model(task_dificulty: str):
-    model = MODEL_BY_DIFICULTY.get(task_dificulty, None)
+def get_model(TASK_DIFFICULTY: str, tools: list[str]) -> BaseChatModel:
+    model = get_model_by_difficulty(TASK_DIFFICULTY)
     
-    if not model:
-        raise ValueError("Model not Found")
-    
-    return model
+    return create_agent(
+        model=model,
+        tools=tools
+    )

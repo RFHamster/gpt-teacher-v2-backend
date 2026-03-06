@@ -1,35 +1,23 @@
-from teacher_agent.prompt import SYSTEM_PROMPT
-from app.agents.teacher_agent.model import AgentInput
-from teacher_agent.teacher_agent import get_groq_model
-from gpt_teacher_db.gpt_teacher.models.problem import Problem
+from langchain_groq import ChatGroq
 
-def get_prompt(agent_input: AgentInput):
-    return SYSTEM_PROMPT.format(
-        problem_title=agent_input.problem_title,
-        problem_description=agent_input.problem_description,
-        is_sandbox=agent_input.is_sandbox,
-        student_code=agent_input.student_code,
-        user_message=agent_input.user_message,
-        chat_history=agent_input.chat_history
-    )
+class GroqModels(str):
+    LOW = "llama-3.3-8b"
+    MEDIUM = "llama-3.3-70b-versatile"
+    HIGH = "mixtral-8x7b-32768"
 
-def get_model(TASK_DIFFICULTY: str):
-    return get_groq_model(TASK_DIFFICULTY)
+MODEL_BY_DIFICULTY = {
+    'LOW': GroqModels.LOW,
+    'MEDIUM': GroqModels.MEDIUM,
+    'HIGH': GroqModels.HIGH
+}
 
-def generate_ai_response(student_session, user_message, problem: Problem, student_code: str):
-    prompt = get_prompt(
-        problem_title=problem.title, 
-        problem_description=problem.description, 
-        is_sandbox=problem.is_sandbox, 
-        student_code=student_code, 
-        user_message=user_message,
-        chat_history=student_session.chat_history
-    )
-    brain = get_model(TASK_DIFFICULTY = "LOW")
-    config = {"configurable": {"session_id": student_session.id}}
-    response = brain.invoke(
-        prompt=prompt, 
-        config=config
-    ).content
+def get_model_by_difficulty(task_dificulty: str) -> ChatGroq:
+    model = MODEL_BY_DIFICULTY.get(task_dificulty)
     
-    return response
+    if not model:
+        raise ValueError("Model not Found")
+    
+    return ChatGroq(
+        model=model,
+        temperature=0.3
+    )
