@@ -1,3 +1,5 @@
+from langchain.messages import HumanMessage
+
 from app.llm import get_model_by_difficulty
 from app.agents.teacher_agent.prompt import SYSTEM_PROMPT
 from langchain_core.prompt_values import ChatPromptValue
@@ -58,6 +60,15 @@ def call_teacher_agent(agent_input: AgentInput) -> str:
 		is_sandbox=agent_input.is_sandbox,
 		student_code=agent_input.student_code,
 	)
-	response = brain.invoke(HumanMessage())
+	response = brain.invoke(
+		{
+			'messages': [
+				HumanMessage(
+					content=f'* Código do Aluno: {agent_input.student_code}\n* Mensagem do Aluno: {agent_input.user_message}'
+				)
+			]
+		},
+		{'configurable': {'thread_id': agent_input.session_id}},
+	)
 
 	return response.content
