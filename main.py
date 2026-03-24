@@ -1,6 +1,6 @@
 def main():
-    print("Hello from gpt-teacher-backend!")
+	print('Hello from gpt-teacher-backend!')
 
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+	main()
