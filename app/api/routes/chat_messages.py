@@ -1,9 +1,12 @@
 from fastapi import APIRouter, HTTPException
+from app.agents.teacher_agent.model import AgentInput
+from app.agents.teacher_agent.utils import generate_ai_response
+
 
 from gpt_teacher_db.gpt_teacher.models.chat_message import (
     ChatMessage,
     ChatMessageCreate,
-    ChatMessagePublic,
+    ChatMessagePublic
 )
 
 from app.api.deps import SessionDep, CurrentStudentUser
@@ -15,19 +18,16 @@ router = APIRouter(tags=["chat-messages"])
 
 
 @router.post(
-    "/student-session/{session_id}/chat-messages",
-    response_model=list[ChatMessagePublic],
+    "/call-agent/student-session/{session_id}/chat-messages",
+    response_model=ChatMessagePublic,
 )
 def send_chat_message(
     session: SessionDep,
     current_user: CurrentStudentUser,
     session_id: str,
-    message_in: ChatMessageCreate,
+    agent_input: AgentInput,
 ):
-    """
-    Envia mensagem (aluno envia, IA responde)
-    """
-    # Verifica se a sessão existe e pertence ao aluno
+    
     student_session = session_crud.get_student_session_by_id(session, session_id)
     if not student_session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -39,15 +39,10 @@ def send_chat_message(
 
     if not student_session.is_active:
         raise HTTPException(status_code=400, detail="Session is not active")
+    
+    message_crud.create_chat_message(session, agent_input.student_input, session_id)    
 
-    # Cria mensagem do usuário
-    user_message = message_crud.create_chat_message(session, message_in, session_id)
-
-    # TODO: Gerar resposta da IA
-    # ai_response_content = generate_ai_response(student_session, user_message)
-
-    # Por enquanto, vamos criar uma resposta simulada
-    ai_response_content = f"Esta é uma resposta da IA para: {message_in.content}"
+    ai_response_content = generate_ai_response(agent_input)
 
     ai_message_in = ChatMessageCreate(
         content=ai_response_content,
@@ -55,9 +50,7 @@ def send_chat_message(
     )
     ai_message = message_crud.create_chat_message(session, ai_message_in, session_id)
 
-    # Retorna ambas as mensagens (usuário + IA)
-    return [user_message, ai_message]
-
+    return ai_message
 
 @router.get(
     "/student-session/{session_id}/chat-messages",
