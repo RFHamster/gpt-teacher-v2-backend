@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from app.agents.teacher_agent.model import AgentInput
-from app.agents.teacher_agent.utils import generate_ai_response
+from app.agents.teacher_agent import call_teacher_agent
 
 
 from gpt_teacher_db.gpt_teacher.models.chat_message import (
@@ -40,13 +40,15 @@ def send_chat_message(
     if not student_session.is_active:
         raise HTTPException(status_code=400, detail="Session is not active")
     
-    message_crud.create_chat_message(session, agent_input.student_input, session_id)    
+    message_crud.create_chat_message(session, agent_input.user_message, session_id)    
 
-    ai_response_content = generate_ai_response(agent_input)
+    ai_response_content = call_teacher_agent(agent_input)
 
     ai_message_in = ChatMessageCreate(
         content=ai_response_content,
         role="assistant",
+        session_id=student_session.id,      
+        problem_id=student_session.problem_id 
     )
     ai_message = message_crud.create_chat_message(session, ai_message_in, session_id)
 

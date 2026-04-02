@@ -6,7 +6,8 @@ class AgentInput(BaseModel):
     is_sandbox: bool
     student_code: str
     user_message: str
-    chat_history: list[dict[str, str]]
+    session_id: str
+    student_id: str
 
 
 

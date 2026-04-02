@@ -1,15 +1,19 @@
 from app.llm import get_model_by_difficulty
 from app.agents.teacher_agent.prompt import SYSTEM_PROMPT
-from langchain_core.prompt_values import ChatPromptValue
-from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import HumanMessage
+from langgraph.graph.state import CompiledStateGraph
 from langchain.agents import create_agent
 from app.agents.teacher_agent.model import AgentInput
-
+from app.llm.memory import get_db_resources
+from app.agents.teacher_agent.tools import (
+    save_student_knowledge, 
+    get_student_history
+)
 
 TASK_DIFFICULTY = "MEDIUM"
 
 def get_prompt(*, problem_title: str, problem_description: str, is_sandbox: bool, student_code: str) -> str:
-    return SYSTEM_PROMPT.format({
+    return SYSTEM_PROMPT.format(**{
         "problem_title": problem_title,
         "problem_description": problem_description,
         "is_sandbox": str(is_sandbox),
@@ -18,16 +22,37 @@ def get_prompt(*, problem_title: str, problem_description: str, is_sandbox: bool
 
 
 def get_tools() -> list:
-    return []
+    return [save_student_knowledge, get_student_history]
 
-def get_teacher_agent(*, problem_title: str, problem_description: str, is_sandbox: bool, student_code: str) -> BaseChatModel:
+
+def get_teacher_agent(
+    *, 
+    problem_title: str, 
+    problem_description: str, 
+    is_sandbox: bool, 
+    student_code: str
+) -> CompiledStateGraph:
+    
     model = get_model_by_difficulty(TASK_DIFFICULTY)
     
-    return create_agent(
+    system_prompt = get_prompt(
+        problem_title=problem_title, 
+        problem_description=problem_description, 
+        is_sandbox=is_sandbox, 
+        student_code=student_code
+    )
+
+    checkpointer, store = get_db_resources()
+
+    agent = create_agent(
         model=model,
         tools=get_tools(),
-        system_prompt=get_prompt(problem_title=problem_title, problem_description=problem_description, is_sandbox=is_sandbox, student_code=student_code)
+        checkpointer=checkpointer,
+        store=store,
+        system_prompt=system_prompt
     )
+
+    return agent
 
 
 def call_teacher_agent(agent_input: AgentInput) -> str:
@@ -37,6 +62,13 @@ def call_teacher_agent(agent_input: AgentInput) -> str:
         is_sandbox=agent_input.is_sandbox,
         student_code=agent_input.student_code
     )
-    response = brain.invoke(HumanMessage())
+    config = {
+        "configurable": {
+            "thread_id": agent_input.session_id,
+            "student_id": agent_input.student_id
+            }
+        }
+    input_data = {"messages": [HumanMessage(content=agent_input.user_message)]}
+    response = brain.invoke(input_data, config=config)
     
-    return response.content
+    return response["messages"][-1].content
