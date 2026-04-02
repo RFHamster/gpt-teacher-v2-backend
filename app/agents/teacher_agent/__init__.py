@@ -1,3 +1,5 @@
+from langchain.messages import HumanMessage
+
 from app.llm import get_model_by_difficulty
 from app.agents.teacher_agent.prompt import SYSTEM_PROMPT
 from langchain_core.messages import HumanMessage
@@ -10,14 +12,12 @@ from app.agents.teacher_agent.tools import (
     get_student_history
 )
 
-TASK_DIFFICULTY = "MEDIUM"
+TASK_DIFFICULTY = 'MEDIUM'
 
-def get_prompt(*, problem_title: str, problem_description: str, is_sandbox: bool, student_code: str) -> str:
+def get_prompt(*, problem_title: str, problem_description: str) -> str:
     return SYSTEM_PROMPT.format(**{
         "problem_title": problem_title,
         "problem_description": problem_description,
-        "is_sandbox": str(is_sandbox),
-        "student_code": student_code
     })
 
 
@@ -28,18 +28,14 @@ def get_tools() -> list:
 def get_teacher_agent(
     *, 
     problem_title: str, 
-    problem_description: str, 
-    is_sandbox: bool, 
-    student_code: str
+    problem_description: str
 ) -> CompiledStateGraph:
     
     model = get_model_by_difficulty(TASK_DIFFICULTY)
     
     system_prompt = get_prompt(
         problem_title=problem_title, 
-        problem_description=problem_description, 
-        is_sandbox=is_sandbox, 
-        student_code=student_code
+        problem_description=problem_description
     )
 
     checkpointer, store = get_db_resources()
@@ -51,24 +47,30 @@ def get_teacher_agent(
         store=store,
         system_prompt=system_prompt
     )
-
+    
     return agent
 
 
 def call_teacher_agent(agent_input: AgentInput) -> str:
     brain = get_teacher_agent(
         problem_title=agent_input.problem_title,
-        problem_description=agent_input.problem_description,
-        is_sandbox=agent_input.is_sandbox,
-        student_code=agent_input.student_code
+        problem_description=agent_input.problem_description
     )
+
     config = {
         "configurable": {
             "thread_id": agent_input.session_id,
             "student_id": agent_input.student_id
             }
         }
-    input_data = {"messages": [HumanMessage(content=agent_input.user_message)]}
+    
+    input_data = {
+        "messages": [
+				HumanMessage(
+					content=f'* Código do Aluno: <student_code>{agent_input.student_code}</student_code>\n* Mensagem do Aluno: <student_message>{agent_input.user_message}</student_message>'
+				)
+			]
+        }
     response = brain.invoke(input_data, config=config)
     
     return response["messages"][-1].content

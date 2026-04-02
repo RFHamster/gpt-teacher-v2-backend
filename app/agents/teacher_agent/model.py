@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class AgentInput(BaseModel):
     problem_title: str
     problem_description: str

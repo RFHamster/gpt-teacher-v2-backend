@@ -28,8 +28,6 @@ def save_student_knowledge(
     
     return "Informação salva."
 
-    
-
 
 @tool
 def get_student_history(
