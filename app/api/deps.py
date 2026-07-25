@@ -35,8 +35,9 @@ def get_current_teacher_user(session: SessionDep, token: TokenDep) -> Teacher:
 		raise HTTPException(
 			status_code=404, detail='Token not related to a Teacher'
 		)
-	if not user.is_active:
-		raise HTTPException(status_code=400, detail='Inactive user')
+	# TODO: reativar quando o campo is_active existir no model Teacher
+	# if not user.is_active:
+	#     raise HTTPException(status_code=400, detail='Inactive user')
 	return user
 
 
@@ -54,8 +55,9 @@ def get_current_student_user(session: SessionDep, token: TokenDep) -> Student:
 		raise HTTPException(
 			status_code=404, detail='Token not related to a Student'
 		)
-	if not user.is_active:
-		raise HTTPException(status_code=400, detail='Inactive user')
+	# TODO: reativar quando o campo is_active existir no model Student
+	# if not user.is_active:
+	#     raise HTTPException(status_code=400, detail='Inactive user')
 	return user
 
 

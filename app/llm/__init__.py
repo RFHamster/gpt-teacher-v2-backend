@@ -1,5 +1,7 @@
 from langchain_groq import ChatGroq
 
+from app.core.config import settings
+
 
 class GroqModels(str):
 	LOW = 'llama-3.3-8b'
@@ -20,4 +22,8 @@ def get_model_by_difficulty(task_dificulty: str) -> ChatGroq:
 	if not model:
 		raise ValueError('Model not Found')
 
-	return ChatGroq(model=model, temperature=0.3)
+	return ChatGroq(
+		model=model,
+		temperature=0.3,
+		api_key=settings.GROQ_API_KEY,
+	)

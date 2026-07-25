@@ -43,31 +43,29 @@ async def create_problem(
 	"""
 	Cria problema na turma (FormData com arquivo opcional)
 	"""
-	# Verifica se a turma existe e pertence ao professor
 	classroom = classroom_crud.get_classroom_by_id(session, classroom_id)
 	if not classroom:
 		raise HTTPException(status_code=404, detail='Classroom not found')
 
-	if classroom.teacher_id != str(current_user.id):
+	if classroom.teacher_id != current_user.id:
 		raise HTTPException(
 			status_code=403,
 			detail='Not authorized to add problems to this classroom',
 		)
 
-	# TODO: Upload do arquivo para storage (S3, GCS, etc)
 	file_url = None
 	if file:
-		# Aqui você implementaria o upload do arquivo
-		# Por enquanto, vamos apenas simular
 		file_url = f'uploads/{file.filename}'
 
 	problem_in = ProblemCreate(
 		title=title,
 		description=description,
-		file_url=file_url,
+		classroom_id=classroom_id,
 	)
 
-	problem = problem_crud.create_problem(session, problem_in, classroom_id)
+	problem = problem_crud.create_problem(
+		session, problem_in, classroom_id, file_url=file_url
+	)
 	return problem
 
 
@@ -86,16 +84,15 @@ def get_classroom_problems(
 	if not classroom:
 		raise HTTPException(status_code=404, detail='Classroom not found')
 
-	# Verifica se o usuário tem acesso à turma
 	if isinstance(current_user, Teacher):
-		if classroom.teacher_id != str(current_user.id):
+		if classroom.teacher_id != current_user.id:
 			raise HTTPException(
 				status_code=403,
 				detail='Not authorized to access this classroom',
 			)
 	elif isinstance(current_user, Student):
 		if not classroom_crud.is_student_in_classroom(
-			session, classroom_id, str(current_user.id)
+			session, classroom_id, current_user.id
 		):
 			raise HTTPException(
 				status_code=403,
@@ -121,7 +118,6 @@ def get_problem(
 	if not problem:
 		raise HTTPException(status_code=404, detail='Problem not found')
 
-	# Verifica se o usuário tem acesso ao problema
 	classroom = classroom_crud.get_classroom_by_id(
 		session, problem.classroom_id
 	)
@@ -129,13 +125,13 @@ def get_problem(
 		raise HTTPException(status_code=404, detail='Classroom not found')
 
 	if isinstance(current_user, Teacher):
-		if classroom.teacher_id != str(current_user.id):
+		if classroom.teacher_id != current_user.id:
 			raise HTTPException(
 				status_code=403, detail='Not authorized to access this problem'
 			)
 	elif isinstance(current_user, Student):
 		if not classroom_crud.is_student_in_classroom(
-			session, problem.classroom_id, str(current_user.id)
+			session, problem.classroom_id, current_user.id
 		):
 			raise HTTPException(
 				status_code=403, detail='Not authorized to access this problem'
@@ -158,11 +154,10 @@ def update_problem(
 	if not problem:
 		raise HTTPException(status_code=404, detail='Problem not found')
 
-	# Verifica se o professor é o dono da turma
 	classroom = classroom_crud.get_classroom_by_id(
 		session, problem.classroom_id
 	)
-	if not classroom or classroom.teacher_id != str(current_user.id):
+	if not classroom or classroom.teacher_id != current_user.id:
 		raise HTTPException(
 			status_code=403, detail='Not authorized to update this problem'
 		)
@@ -184,11 +179,10 @@ def delete_problem(
 	if not problem:
 		raise HTTPException(status_code=404, detail='Problem not found')
 
-	# Verifica se o professor é o dono da turma
 	classroom = classroom_crud.get_classroom_by_id(
 		session, problem.classroom_id
 	)
-	if not classroom or classroom.teacher_id != str(current_user.id):
+	if not classroom or classroom.teacher_id != current_user.id:
 		raise HTTPException(
 			status_code=403, detail='Not authorized to delete this problem'
 		)
@@ -209,15 +203,13 @@ async def create_sandbox_problem(
 	"""
 	Aluno cria problema sandbox
 	"""
-	# Verifica se o aluno está na turma
 	if not classroom_crud.is_student_in_classroom(
-		session, classroom_id, str(current_user.id)
+		session, classroom_id, current_user.id
 	):
 		raise HTTPException(
 			status_code=403, detail='Not authorized to access this classroom'
 		)
 
-	# TODO: Upload do arquivo para storage
 	file_url = None
 	if file:
 		file_url = f'uploads/{file.filename}'
@@ -225,15 +217,16 @@ async def create_sandbox_problem(
 	problem_in = ProblemCreate(
 		title=title,
 		description=description,
-		file_url=file_url,
-		is_sandbox=True,
+		classroom_id=classroom_id,
 	)
 
 	problem = problem_crud.create_problem(
 		session,
 		problem_in,
 		classroom_id,
-		created_by_student_id=str(current_user.id),
+		file_url=file_url,
+		is_sandbox=True,
+		created_by_student_id=current_user.id,
 	)
 	return problem
 
@@ -253,7 +246,7 @@ def get_sandbox_problems(
 	if not classroom:
 		raise HTTPException(status_code=404, detail='Classroom not found')
 
-	if classroom.teacher_id != str(current_user.id):
+	if classroom.teacher_id != current_user.id:
 		raise HTTPException(
 			status_code=403, detail='Not authorized to access this classroom'
 		)
@@ -271,10 +264,6 @@ def suggest_problem(
 	"""
 	IA sugere título/descrição do problema
 	"""
-	# TODO: Implementar integração com IA para sugerir título e descrição
-	# baseado no arquivo enviado (request.file_url)
-
-	# Por enquanto, retorna um exemplo
 	return ProblemSuggestResponse(
 		title='Problema sugerido pela IA',
 		description='Descrição sugerida pela IA baseada no arquivo fornecido.',
