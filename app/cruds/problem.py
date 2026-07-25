@@ -19,6 +19,7 @@ def create_problem(
 	problem = Problem(
 		title=problem_in.title,
 		description=problem_in.description,
+		category=problem_in.category,
 		file_path=file_path,
 		classroom_id=classroom_id,
 		is_sandbox=is_sandbox,

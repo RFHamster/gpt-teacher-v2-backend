@@ -38,6 +38,7 @@ async def create_problem(
 	classroom_id: str,
 	title: Annotated[str, Form()],
 	description: Annotated[str, Form()],
+	category: Annotated[str | None, Form()] = None,
 	file: UploadFile = File(None),
 ) -> Problem:
 	"""
@@ -60,6 +61,7 @@ async def create_problem(
 	problem_in = ProblemCreate(
 		title=title,
 		description=description,
+		category=category,
 		classroom_id=classroom_id,
 	)
 
@@ -198,6 +200,7 @@ async def create_sandbox_problem(
 	classroom_id: Annotated[str, Form()],
 	title: Annotated[str, Form()],
 	description: Annotated[str, Form()],
+	category: Annotated[str | None, Form()] = None,
 	file: UploadFile = File(None),
 ) -> Problem:
 	"""
@@ -217,6 +220,7 @@ async def create_sandbox_problem(
 	problem_in = ProblemCreate(
 		title=title,
 		description=description,
+		category=category,
 		classroom_id=classroom_id,
 	)
 
