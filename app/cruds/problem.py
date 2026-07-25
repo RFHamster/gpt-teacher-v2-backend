@@ -11,7 +11,7 @@ def create_problem(
 	session: Session,
 	problem_in: ProblemCreate,
 	classroom_id: str,
-	file_url: str | None = None,
+	file_path: str | None = None,
 	is_sandbox: bool = False,
 	created_by_student_id: str | None = None,
 ) -> Problem:
@@ -19,7 +19,7 @@ def create_problem(
 	problem = Problem(
 		title=problem_in.title,
 		description=problem_in.description,
-		file_url=file_url,
+		file_path=file_path,
 		classroom_id=classroom_id,
 		is_sandbox=is_sandbox,
 		created_by_student_id=created_by_student_id,

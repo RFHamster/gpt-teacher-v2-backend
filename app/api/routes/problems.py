@@ -53,9 +53,9 @@ async def create_problem(
 			detail='Not authorized to add problems to this classroom',
 		)
 
-	file_url = None
+	file_path = None
 	if file:
-		file_url = f'uploads/{file.filename}'
+		file_path = f'uploads/{file.filename}'
 
 	problem_in = ProblemCreate(
 		title=title,
@@ -64,7 +64,7 @@ async def create_problem(
 	)
 
 	problem = problem_crud.create_problem(
-		session, problem_in, classroom_id, file_url=file_url
+		session, problem_in, classroom_id, file_path=file_path
 	)
 	return problem
 
@@ -210,9 +210,9 @@ async def create_sandbox_problem(
 			status_code=403, detail='Not authorized to access this classroom'
 		)
 
-	file_url = None
+	file_path = None
 	if file:
-		file_url = f'uploads/{file.filename}'
+		file_path = f'uploads/{file.filename}'
 
 	problem_in = ProblemCreate(
 		title=title,
@@ -224,7 +224,7 @@ async def create_sandbox_problem(
 		session,
 		problem_in,
 		classroom_id,
-		file_url=file_url,
+		file_path=file_path,
 		is_sandbox=True,
 		created_by_student_id=current_user.id,
 	)
