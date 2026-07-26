@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Union
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -61,5 +61,36 @@ def get_current_student_user(session: SessionDep, token: TokenDep) -> Student:
 	return user
 
 
+def get_current_teacher_or_student_user(
+	session: SessionDep, token: TokenDep
+) -> Union[Teacher, Student]:
+	"""
+	Autentica o token e retorna Teacher ou Student, o que existir.
+	Usado em rotas acessíveis por ambos os tipos de usuário.
+	"""
+	try:
+		token_data = decode_jwt_token(token, verify_exp=True)
+	except (InvalidTokenError, ValidationError):
+		raise HTTPException(
+			status_code=status.HTTP_401_UNAUTHORIZED,
+			detail='Could not validate credentials',
+		)
+
+	user = session.get(Teacher, token_data.sub)
+	if user:
+		return user
+
+	user = session.get(Student, token_data.sub)
+	if user:
+		return user
+
+	raise HTTPException(
+		status_code=404, detail='Token not related to a valid user'
+	)
+
+
 CurrentTeacherUser = Annotated[Teacher, Depends(get_current_teacher_user)]
 CurrentStudentUser = Annotated[Student, Depends(get_current_student_user)]
+CurrentTeacherOrStudentUser = Annotated[
+	Union[Teacher, Student], Depends(get_current_teacher_or_student_user)
+]

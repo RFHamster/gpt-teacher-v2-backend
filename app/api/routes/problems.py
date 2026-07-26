@@ -12,7 +12,12 @@ from gpt_teacher_db.gpt_teacher.models.problem import (
 from gpt_teacher_db.gpt_teacher.models.teacher import Teacher
 from gpt_teacher_db.gpt_teacher.models.student import Student
 
-from app.api.deps import SessionDep, CurrentTeacherUser, CurrentStudentUser
+from app.api.deps import (
+	SessionDep,
+	CurrentTeacherUser,
+	CurrentStudentUser,
+	CurrentTeacherOrStudentUser,
+)
 from app.cruds import classroom as classroom_crud
 from app.cruds import problem as problem_crud
 
@@ -76,7 +81,7 @@ async def create_problem(
 )
 def get_classroom_problems(
 	session: SessionDep,
-	current_user: Union[Teacher, Student],
+	current_user: CurrentTeacherOrStudentUser,
 	classroom_id: str,
 ):
 	"""
@@ -110,7 +115,7 @@ def get_classroom_problems(
 @router.get('/problems/{id}', response_model=ProblemPublic)
 def get_problem(
 	session: SessionDep,
-	current_user: Union[Teacher, Student],
+	current_user: CurrentTeacherOrStudentUser,
 	id: str,
 ) -> Problem:
 	"""
