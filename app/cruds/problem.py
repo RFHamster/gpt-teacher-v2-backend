@@ -11,17 +11,18 @@ def create_problem(
 	session: Session,
 	problem_in: ProblemCreate,
 	classroom_id: str,
+	file_path: str | None = None,
+	is_sandbox: bool = False,
 	created_by_student_id: str | None = None,
 ) -> Problem:
 	"""Cria um novo problema"""
 	problem = Problem(
 		title=problem_in.title,
 		description=problem_in.description,
-		file_url=problem_in.file_url,
+		category=problem_in.category,
+		file_path=file_path,
 		classroom_id=classroom_id,
-		is_sandbox=problem_in.is_sandbox
-		if hasattr(problem_in, 'is_sandbox')
-		else False,
+		is_sandbox=is_sandbox,
 		created_by_student_id=created_by_student_id,
 	)
 	session.add(problem)

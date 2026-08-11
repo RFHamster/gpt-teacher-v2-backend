@@ -17,7 +17,6 @@ def create_classroom(
 	"""Cria uma nova turma"""
 	classroom = Classroom(
 		name=classroom_in.name,
-		description=classroom_in.description,
 		teacher_id=teacher_id,
 	)
 	session.add(classroom)

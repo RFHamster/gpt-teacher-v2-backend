@@ -7,13 +7,17 @@ from gpt_teacher_db.gpt_teacher.models.chat_message import (
 
 
 def create_chat_message(
-	session: Session, message_in: ChatMessageCreate, session_id: str
+	session: Session,
+	message_in: ChatMessageCreate,
 ) -> ChatMessage:
 	"""Cria uma nova mensagem no chat"""
 	chat_message = ChatMessage(
-		session_id=session_id,
+		session_id=message_in.session_id,
+		problem_id=message_in.problem_id,
+		type=message_in.type,
 		content=message_in.content,
-		role=message_in.role,
+		code=message_in.code,
+		code_review=message_in.code_review,
 	)
 	session.add(chat_message)
 	session.commit()

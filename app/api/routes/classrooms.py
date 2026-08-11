@@ -31,7 +31,7 @@ def create_classroom(
 	Cria nova turma
 	"""
 	classroom = classroom_crud.create_classroom(
-		session, classroom_in, str(current_user.id)
+		session, classroom_in, current_user.id
 	)
 	return classroom
 
@@ -45,7 +45,7 @@ def get_classrooms(
 	Lista turmas do professor
 	"""
 	classrooms = classroom_crud.get_classrooms_by_teacher(
-		session, str(current_user.id)
+		session, current_user.id
 	)
 	return classrooms
 
@@ -63,7 +63,7 @@ def get_classroom(
 	if not classroom:
 		raise HTTPException(status_code=404, detail='Classroom not found')
 
-	if classroom.teacher_id != str(current_user.id):
+	if classroom.teacher_id != current_user.id:
 		raise HTTPException(
 			status_code=403, detail='Not authorized to access this classroom'
 		)
@@ -85,7 +85,7 @@ def update_classroom(
 	if not classroom:
 		raise HTTPException(status_code=404, detail='Classroom not found')
 
-	if classroom.teacher_id != str(current_user.id):
+	if classroom.teacher_id != current_user.id:
 		raise HTTPException(
 			status_code=403, detail='Not authorized to update this classroom'
 		)
@@ -109,7 +109,7 @@ def delete_classroom(
 	if not classroom:
 		raise HTTPException(status_code=404, detail='Classroom not found')
 
-	if classroom.teacher_id != str(current_user.id):
+	if classroom.teacher_id != current_user.id:
 		raise HTTPException(
 			status_code=403, detail='Not authorized to delete this classroom'
 		)
@@ -132,7 +132,7 @@ def add_student_to_classroom(
 	if not classroom:
 		raise HTTPException(status_code=404, detail='Classroom not found')
 
-	if classroom.teacher_id != str(current_user.id):
+	if classroom.teacher_id != current_user.id:
 		raise HTTPException(
 			status_code=403, detail='Not authorized to modify this classroom'
 		)
@@ -166,7 +166,7 @@ def remove_student_from_classroom(
 	if not classroom:
 		raise HTTPException(status_code=404, detail='Classroom not found')
 
-	if classroom.teacher_id != str(current_user.id):
+	if classroom.teacher_id != current_user.id:
 		raise HTTPException(
 			status_code=403, detail='Not authorized to modify this classroom'
 		)
@@ -188,7 +188,7 @@ def get_classroom_students(
 	if not classroom:
 		raise HTTPException(status_code=404, detail='Classroom not found')
 
-	if classroom.teacher_id != str(current_user.id):
+	if classroom.teacher_id != current_user.id:
 		raise HTTPException(
 			status_code=403, detail='Not authorized to access this classroom'
 		)

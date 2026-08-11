@@ -32,6 +32,8 @@ class Settings(BaseSettings):
 	ACCESS_TOKEN_EXPIRE_MINUTES: int = int(60 * 9.5)
 	FRONTEND_HOST: str = 'http://localhost:3000'
 
+	GROQ_API_KEY: str = ''
+
 	BACKEND_CORS_ORIGINS: Annotated[
 		list[AnyUrl] | str, BeforeValidator(parse_cors)
 	] = []

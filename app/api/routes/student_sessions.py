@@ -7,6 +7,7 @@ from gpt_teacher_db.gpt_teacher.models.student_session import (
 )
 
 from app.api.deps import SessionDep, CurrentStudentUser
+from app.schemas.student_session import StudentSessionCreateRequest
 from app.cruds import student_session as session_crud
 from app.cruds import problem as problem_crud
 from app.cruds import classroom as classroom_crud
@@ -19,7 +20,7 @@ router = APIRouter(tags=['student-sessions'])
 def create_student_session(
 	session: SessionDep,
 	current_user: CurrentStudentUser,
-	session_in: StudentSessionCreate,
+	session_in: StudentSessionCreateRequest,
 ) -> StudentSession:
 	"""
 	Inicia sessão (fecha anterior automaticamente)
@@ -37,9 +38,15 @@ def create_student_session(
 			status_code=403, detail='Not authorized to access this problem'
 		)
 
-	# Cria a sessão (fecha automaticamente qualquer sessão ativa anterior)
+	# Monta o objeto completo que o model do banco espera,
+	# preenchendo student_id a partir do usuário autenticado
+	full_session_data = StudentSessionCreate(
+		student_id=current_user.id,
+		problem_id=session_in.problem_id,
+	)
+
 	student_session = session_crud.create_student_session(
-		session, session_in, str(current_user.id)
+		session, full_session_data
 	)
 	return student_session
 
@@ -71,7 +78,7 @@ def get_student_session(
 	if not student_session:
 		raise HTTPException(status_code=404, detail='Session not found')
 
-	if student_session.student_id != str(current_user.id):
+	if student_session.student_id != current_user.id:
 		raise HTTPException(
 			status_code=403, detail='Not authorized to access this session'
 		)
@@ -92,18 +99,15 @@ def close_student_session(
 	if not student_session:
 		raise HTTPException(status_code=404, detail='Session not found')
 
-	if student_session.student_id != str(current_user.id):
+	if student_session.student_id != current_user.id:
 		raise HTTPException(
 			status_code=403, detail='Not authorized to close this session'
 		)
 
-	if not student_session.is_active:
+	if student_session.status.value != 'open':
 		raise HTTPException(
 			status_code=400, detail='Session is already closed'
 		)
-
-	# TODO: Gerar consolidação com IA antes de fechar a sessão
-	# consolidated = generate_consolidation(student_session)
 
 	student_session = session_crud.close_session(session, student_session)
 	return student_session
@@ -121,12 +125,10 @@ def get_problem_student_sessions(
 	"""
 	Histórico de sessões do aluno no problema
 	"""
-	# Verifica se o problema existe
 	problem = problem_crud.get_problem_by_id(session, problem_id)
 	if not problem:
 		raise HTTPException(status_code=404, detail='Problem not found')
 
-	# Verifica se o aluno tem acesso ao problema
 	if not classroom_crud.is_student_in_classroom(
 		session, problem.classroom_id, str(current_user.id)
 	):
