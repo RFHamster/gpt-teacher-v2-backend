@@ -9,7 +9,8 @@ from gpt_teacher_db.gpt_teacher.models.classroom import (
 )
 from gpt_teacher_db.gpt_teacher.models.student import StudentPublic
 
-from app.api.deps import SessionDep, CurrentTeacherUser
+from app.api.deps import SessionDep, CurrentTeacherUser, CurrentStudentUser
+from app.schemas.classroom_student import StudentMethodologyUpdateRequest
 from app.cruds import classroom as classroom_crud
 from app.cruds import student as student_crud
 
@@ -137,12 +138,10 @@ def add_student_to_classroom(
 			status_code=403, detail='Not authorized to modify this classroom'
 		)
 
-	# Verifica se o aluno existe
 	student = student_crud.get_student_by_id(session, request.student_id)
 	if not student:
 		raise HTTPException(status_code=404, detail='Student not found')
 
-	# Verifica se o aluno já está na turma
 	if classroom_crud.is_student_in_classroom(session, id, request.student_id):
 		raise HTTPException(
 			status_code=400, detail='Student already in classroom'
@@ -195,3 +194,27 @@ def get_classroom_students(
 
 	students = classroom_crud.get_classroom_students(session, id)
 	return students
+
+
+@router.put('/{classroom_id}/students/me/methodology')
+def update_my_methodology(
+	session: SessionDep,
+	current_user: CurrentStudentUser,
+	classroom_id: str,
+	request: StudentMethodologyUpdateRequest,
+):
+	"""
+	Aluno atualiza sua própria metodologia dentro desta turma.
+	"""
+	classroom_student = classroom_crud.get_classroom_student(
+		session, classroom_id, current_user.id
+	)
+	if not classroom_student:
+		raise HTTPException(
+			status_code=404, detail='Matrícula não encontrada nesta turma'
+		)
+
+	classroom_crud.update_classroom_student_methodology(
+		session, classroom_student, request.methodology
+	)
+	return {'message': 'Metodologia atualizada com sucesso'}

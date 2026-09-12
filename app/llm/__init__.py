@@ -4,9 +4,9 @@ from app.core.config import settings
 
 
 class GroqModels(str):
-	LOW = 'llama-3.3-8b'
-	MEDIUM = 'llama-3.3-70b-versatile'
-	HIGH = 'mixtral-8x7b-32768'
+	LOW = 'openai/gpt-oss-20b'
+	MEDIUM = 'openai/gpt-oss-120b'
+	HIGH = 'openai/gpt-oss-120b'
 
 
 MODEL_BY_DIFICULTY = {
