@@ -57,10 +57,6 @@ def send_chat_message(
 	)
 	message_crud.create_chat_message(session, user_message_in)
 
-	# Título, descrição e categoria vêm sempre do problema real no banco,
-	# nunca do que o cliente mandou no corpo da requisição.
-	# Metodologia vem sempre da matrícula do aluno NESTA turma
-	# (classroom_student), não mais de um campo fixo no cadastro do aluno.
 	classroom_student = classroom_crud.get_classroom_student(
 		session, problem.classroom_id, current_user.id
 	)
@@ -70,7 +66,7 @@ def send_chat_message(
 		else TeachingMethodology.SOCRATIC
 	)
 
-	trusted_agent_input = AgentInput(
+	teacher_agent_input = AgentInput(
 		problem_title=problem.title,
 		problem_description=problem.description,
 		problem_category=problem.category,
@@ -81,7 +77,7 @@ def send_chat_message(
 	)
 
 	# Resposta da IA
-	ai_response_content = generate_ai_response(trusted_agent_input)
+	ai_response_content = generate_ai_response(teacher_agent_input)
 
 	ai_message_in = ChatMessageCreate(
 		session_id=student_session.id,
