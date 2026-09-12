@@ -11,23 +11,9 @@ from gpt_teacher_db.gpt_teacher.enum import TeachingMethodology
 TASK_DIFFICULTY = 'MEDIUM'
 
 
-def get_prompt(
-	*,
-	problem_title: str,
-	problem_description: str,
-	problem_category: str | None,
-	methodology: TeachingMethodology,
-) -> str:
-	category_line = f'\nMatéria/Tópico: {problem_category}' if problem_category else ''
+def get_prompt(*, methodology: TeachingMethodology) -> str:
 	methodology_block = get_methodology_block(methodology)
-	return BASE_PROMPT.format(
-		**{
-			'problem_title': problem_title,
-			'problem_description': problem_description,
-			'category_line': category_line,
-			'methodology_block': methodology_block,
-		}
-	)
+	return BASE_PROMPT.format(methodology_block=methodology_block)
 
 
 def get_tools() -> list:
@@ -36,9 +22,6 @@ def get_tools() -> list:
 
 def get_teacher_agent(
 	*,
-	problem_title: str,
-	problem_description: str,
-	problem_category: str | None,
 	methodology: TeachingMethodology,
 	checkpointer: PostgresSaver = None
 ) -> BaseChatModel:
@@ -47,12 +30,7 @@ def get_teacher_agent(
 		model=model,
 		tools=get_tools(),
 		checkpointer=checkpointer,
-		system_prompt=get_prompt(
-			problem_title=problem_title,
-			problem_description=problem_description,
-			problem_category=problem_category,
-			methodology=methodology,
-		)
+		system_prompt=get_prompt(methodology=methodology)
 	)
 
 
@@ -61,17 +39,21 @@ def call_teacher_agent(agent_input: AgentInput) -> str:
 	with PostgresSaver.from_conn_string(DB_URI) as checkpointer:
 		checkpointer.setup()
 		brain = get_teacher_agent(
-			problem_title=agent_input.problem_title,
-			problem_description=agent_input.problem_description,
-			problem_category=agent_input.problem_category,
 			methodology=agent_input.methodology,
 			checkpointer=checkpointer
 		)
+		category = agent_input.problem_category or 'não informada'
 		response = brain.invoke(
 			{
 				'messages': [
 					HumanMessage(
-						content=f'Metodologia do aluno: {agent_input.methodology.value}. Código atual do aluno: {agent_input.student_code}'
+						content=(
+							f'Metodologia do aluno: {agent_input.methodology.value}. '
+							f'Problema: {agent_input.problem_title}. '
+							f'Descrição: {agent_input.problem_description}. '
+							f'Categoria: {category}. '
+							f'Código atual do aluno: {agent_input.student_code}'
+						)
 					),
 					HumanMessage(
 						content=agent_input.user_message
