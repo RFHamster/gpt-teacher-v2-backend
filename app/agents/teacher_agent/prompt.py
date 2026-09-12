@@ -18,7 +18,8 @@ Em nenhuma metodologia você fornece a solução completa e pronta de imediato. 
 
 ## PROBLEMA
 Título: {problem_title}
-Descrição: {problem_description}{category_line}
+Descrição: {problem_description}
+Categoria: {category_line}
 
 ## COMO RESPONDER
 1. Confirme primeiro se a mensagem do aluno está dentro do escopo definido acima. Se não estiver, aplique a regra de recusa e pare aqui.
