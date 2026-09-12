@@ -71,10 +71,10 @@ def call_teacher_agent(agent_input: AgentInput) -> str:
 			{
 				'messages': [
 					HumanMessage(
-						content=f'<contexto_do_aluno>\nMetodologia: {agent_input.methodology.value}\nCódigo atual do aluno: <student_code>{agent_input.student_code}</student_code>\n</contexto_do_aluno>'
+						content=f'Metodologia do aluno: {agent_input.methodology.value}. Código atual do aluno: {agent_input.student_code}'
 					),
 					HumanMessage(
-						content=f'<pergunta_do_aluno>{agent_input.user_message}</pergunta_do_aluno>'
+						content=agent_input.user_message
 					),
 				]
 			},
