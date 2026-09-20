@@ -34,6 +34,19 @@ def get_teacher_agent(
 	)
 
 
+def build_context(agent_input: AgentInput) -> str:
+	"""Monta o texto de contexto (metodologia, problema e código do
+	aluno) enviado como HumanMessage a cada mensagem da sessão."""
+	category = agent_input.problem_category or 'não informada'
+	return (
+		f'Metodologia do aluno: {agent_input.methodology.value}. '
+		f'Problema: {agent_input.problem_title}. '
+		f'Descrição: {agent_input.problem_description}. '
+		f'Categoria: {category}. '
+		f'Código atual do aluno: {agent_input.student_code}'
+	)
+
+
 def call_teacher_agent(agent_input: AgentInput) -> str:
 	DB_URI = get_db_uri()
 	with PostgresSaver.from_conn_string(DB_URI) as checkpointer:
@@ -42,22 +55,11 @@ def call_teacher_agent(agent_input: AgentInput) -> str:
 			methodology=agent_input.methodology,
 			checkpointer=checkpointer
 		)
-		category = agent_input.problem_category or 'não informada'
 		response = brain.invoke(
 			{
 				'messages': [
-					HumanMessage(
-						content=(
-							f'Metodologia do aluno: {agent_input.methodology.value}. '
-							f'Problema: {agent_input.problem_title}. '
-							f'Descrição: {agent_input.problem_description}. '
-							f'Categoria: {category}. '
-							f'Código atual do aluno: {agent_input.student_code}'
-						)
-					),
-					HumanMessage(
-						content=agent_input.user_message
-					),
+					HumanMessage(content=build_context(agent_input)),
+					HumanMessage(content=agent_input.user_message),
 				]
 			},
 			{'configurable': {'thread_id': agent_input.session_id}},
