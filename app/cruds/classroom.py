@@ -9,6 +9,7 @@ from gpt_teacher_db.gpt_teacher.models.classroom_student import (
 	ClassroomStudent,
 )
 from gpt_teacher_db.gpt_teacher.models.student import Student
+from gpt_teacher_db.gpt_teacher.enum import TeachingMethodology
 
 
 def create_classroom(
@@ -110,3 +111,27 @@ def is_student_in_classroom(
 		ClassroomStudent.student_id == student_id,
 	)
 	return session.exec(statement).first() is not None
+
+
+def get_classroom_student(
+	session: Session, classroom_id: str, student_id: str
+) -> ClassroomStudent | None:
+	"""Busca a matrícula (aluno + turma), que carrega a metodologia."""
+	statement = select(ClassroomStudent).where(
+		ClassroomStudent.classroom_id == classroom_id,
+		ClassroomStudent.student_id == student_id,
+	)
+	return session.exec(statement).first()
+
+
+def update_classroom_student_methodology(
+	session: Session,
+	classroom_student: ClassroomStudent,
+	methodology: TeachingMethodology,
+) -> ClassroomStudent:
+	"""Atualiza a metodologia do aluno para uma turma específica."""
+	classroom_student.methodology = methodology
+	session.add(classroom_student)
+	session.commit()
+	session.refresh(classroom_student)
+	return classroom_student

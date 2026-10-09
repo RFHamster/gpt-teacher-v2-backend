@@ -1,14 +1,17 @@
 from fastapi import APIRouter, HTTPException
+
 from app.agents.teacher_agent.model import AgentInput
 from app.agents.teacher_agent.utils import generate_ai_response
 
 from gpt_teacher_db.gpt_teacher.models.chat_message import ChatMessageCreate
-from gpt_teacher_db.gpt_teacher.enum import MessageType
+from gpt_teacher_db.gpt_teacher.enum import MessageType, TeachingMethodology
 
 from app.api.deps import SessionDep, CurrentStudentUser
 from app.schemas.chat_message import ChatMessagePublicWithTimestamp
 from app.cruds import chat_message as message_crud
 from app.cruds import student_session as session_crud
+from app.cruds import problem as problem_crud
+from app.cruds import classroom as classroom_crud
 
 
 router = APIRouter(tags=['chat-messages'])
@@ -24,7 +27,6 @@ def send_chat_message(
 	session_id: str,
 	agent_input: AgentInput,
 ):
-
 	student_session = session_crud.get_student_session_by_id(
 		session, session_id
 	)
@@ -39,6 +41,12 @@ def send_chat_message(
 	if student_session.status.value != 'open':
 		raise HTTPException(status_code=400, detail='Session is not active')
 
+	problem = problem_crud.get_problem_by_id(
+		session, student_session.problem_id
+	)
+	if not problem:
+		raise HTTPException(status_code=404, detail='Problem not found')
+
 	# Mensagem do aluno
 	user_message_in = ChatMessageCreate(
 		session_id=student_session.id,
@@ -49,8 +57,27 @@ def send_chat_message(
 	)
 	message_crud.create_chat_message(session, user_message_in)
 
+	classroom_student = classroom_crud.get_classroom_student(
+		session, problem.classroom_id, current_user.id
+	)
+	methodology = (
+		classroom_student.methodology
+		if classroom_student
+		else TeachingMethodology.SOCRATIC
+	)
+
+	teacher_agent_input = AgentInput(
+		problem_title=problem.title,
+		problem_description=problem.description,
+		problem_category=problem.category,
+		session_id=agent_input.session_id,
+		student_code=agent_input.student_code,
+		user_message=agent_input.user_message,
+		methodology=methodology,
+	)
+
 	# Resposta da IA
-	ai_response_content = generate_ai_response(agent_input)
+	ai_response_content = generate_ai_response(teacher_agent_input)
 
 	ai_message_in = ChatMessageCreate(
 		session_id=student_session.id,
