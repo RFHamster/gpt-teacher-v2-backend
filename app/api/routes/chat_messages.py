@@ -6,7 +6,7 @@ from app.agents.teacher_agent.utils import generate_ai_response
 from gpt_teacher_db.gpt_teacher.models.chat_message import ChatMessageCreate
 from gpt_teacher_db.gpt_teacher.enum import MessageType, TeachingMethodology
 
-from app.api.deps import SessionDep, CurrentStudentUser
+from app.api.deps import SessionDep, CurrentStudentUser, CurrentTeacherUser
 from app.schemas.chat_message import ChatMessagePublicWithTimestamp
 from app.cruds import chat_message as message_crud
 from app.cruds import student_session as session_crud
@@ -109,6 +109,34 @@ def get_chat_messages(
 		raise HTTPException(status_code=404, detail='Session not found')
 
 	if student_session.student_id != current_user.id:
+		raise HTTPException(
+			status_code=403, detail='Not authorized to access this session'
+		)
+
+	messages = message_crud.get_messages_by_session(session, session_id)
+	return messages
+
+
+@router.get(
+	'/student-session/{session_id}/chat-messages/teacher',
+	response_model=list[ChatMessagePublicWithTimestamp],
+)
+def get_chat_messages_for_teacher(
+	session: SessionDep,
+	current_user: CurrentTeacherUser,
+	session_id: str,
+):
+	"""Professor: lista mensagens de uma sessão de aluno"""
+	student_session = session_crud.get_student_session_by_id(session, session_id)
+	if not student_session:
+		raise HTTPException(status_code=404, detail='Session not found')
+
+	problem = problem_crud.get_problem_by_id(session, student_session.problem_id)
+	if not problem:
+		raise HTTPException(status_code=404, detail='Problem not found')
+
+	classroom = classroom_crud.get_classroom_by_id(session, problem.classroom_id)
+	if not classroom or str(classroom.teacher_id) != str(current_user.id):
 		raise HTTPException(
 			status_code=403, detail='Not authorized to access this session'
 		)

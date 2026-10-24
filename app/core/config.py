@@ -47,6 +47,9 @@ class Settings(BaseSettings):
 
 	PROJECT_NAME: str = 'GPT Teacher Backend'
 
+	FEEDBACK_SERVICE_URL: str = 'http://localhost:8001'
+	INTERNAL_API_KEY: str = 'change-me-in-production'
+
 	POSTGRES_SERVER: str = 'localhost'
 	POSTGRES_PORT: int = 5432
 	POSTGRES_USER: str = 'postgres'

@@ -3,6 +3,7 @@ from sqlmodel import Session, select
 from gpt_teacher_db.gpt_teacher.models.problem import (
 	Problem,
 	ProblemCreate,
+	BankProblemCreate,
 	ProblemUpdate,
 )
 
@@ -22,6 +23,7 @@ def create_problem(
 		category=problem_in.category,
 		file_path=file_path,
 		classroom_id=classroom_id,
+		list_id=problem_in.list_id,
 		is_sandbox=is_sandbox,
 		created_by_student_id=created_by_student_id,
 	)
@@ -77,3 +79,34 @@ def delete_problem(session: Session, problem: Problem) -> None:
 	"""Remove um problema"""
 	session.delete(problem)
 	session.commit()
+
+
+def create_bank_problem(
+	session: Session,
+	problem_in: BankProblemCreate,
+	bank_classroom_id: str,
+	file_path: str | None = None,
+) -> Problem:
+	"""Cria problema na turma-banco oculta do professor"""
+	problem = Problem(
+		title=problem_in.title,
+		description=problem_in.description,
+		category=problem_in.category,
+		file_path=file_path or problem_in.file_path,
+		classroom_id=bank_classroom_id,
+	)
+	session.add(problem)
+	session.commit()
+	session.refresh(problem)
+	return problem
+
+
+def get_bank_problems_by_classroom(
+	session: Session, bank_classroom_id: str
+) -> list[Problem]:
+	"""Lista todos os problemas do banco de um professor"""
+	statement = select(Problem).where(
+		Problem.classroom_id == bank_classroom_id,
+		Problem.is_sandbox == False,
+	)
+	return list(session.exec(statement).all())

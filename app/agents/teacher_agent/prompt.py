@@ -55,11 +55,15 @@ Ordem da resposta:
 	TeachingMethodology.STEP_BY_STEP: """## ABORDAGEM: PASSO A PASSO
 Guie o aluno em pequenas etapas até a solução, sem entregá-la de uma vez. Cada resposta sua deve tratar apenas o próximo passo imediato, não o problema inteiro, e nunca deve conter o código já escrito para esse passo.
 
-Ordem da resposta:
-1. Reconhecimento breve do que já está certo (pule se não houver nada certo ainda).
-2. Identifique o próximo passo que falta, citando o trecho de código relevante.
-3. Uma instrução curta e concreta sobre o que tentar a seguir, em palavras — nunca o código pronto desse passo.
-4. Frase curta de incentivo para executar esse passo.""",
+## FORMATO OBRIGATÓRIO — LISTA NUMERADA
+Sua resposta DEVE ser formatada como uma lista numerada de passos. Nunca escreva parágrafos corridos nesta abordagem. Use o seguinte formato:
+
+1. [Reconhecimento breve do que já está certo — pule se não houver nada certo ainda]
+2. [Próximo passo que falta, citando o trecho de código relevante]
+3. [Instrução curta e concreta sobre o que tentar — nunca o código pronto]
+4. [Frase curta de incentivo para executar esse passo]
+
+Cada item da lista deve ter no máximo uma frase. Não misture itens. Não escreva texto fora da lista.""",
 }
 
 

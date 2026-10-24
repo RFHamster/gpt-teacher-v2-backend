@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from gpt_teacher_db.gpt_teacher.models.student_session import (
 	StudentSession,
@@ -6,7 +7,7 @@ from gpt_teacher_db.gpt_teacher.models.student_session import (
 	StudentSessionPublic,
 )
 
-from app.api.deps import SessionDep, CurrentStudentUser
+from app.api.deps import SessionDep, CurrentStudentUser, CurrentTeacherUser
 from app.schemas.student_session import StudentSessionCreateRequest
 from app.cruds import student_session as session_crud
 from app.cruds import problem as problem_crud
@@ -86,14 +87,19 @@ def get_student_session(
 	return student_session
 
 
+class CloseSessionRequest(BaseModel):
+	submitted_code: str | None = None
+
+
 @router.post('/{id}/close', response_model=StudentSessionPublic)
 def close_student_session(
 	session: SessionDep,
 	current_user: CurrentStudentUser,
 	id: str,
+	body: CloseSessionRequest = CloseSessionRequest(),
 ) -> StudentSession:
 	"""
-	Fecha sessão manualmente
+	Fecha sessão manualmente, salvando o código submetido
 	"""
 	student_session = session_crud.get_student_session_by_id(session, id)
 	if not student_session:
@@ -108,6 +114,9 @@ def close_student_session(
 		raise HTTPException(
 			status_code=400, detail='Session is already closed'
 		)
+
+	if body.submitted_code is not None:
+		student_session.submitted_code = body.submitted_code
 
 	student_session = session_crud.close_session(session, student_session)
 	return student_session
@@ -140,3 +149,38 @@ def get_problem_student_sessions(
 		session, problem_id, str(current_user.id)
 	)
 	return sessions
+
+
+class TeacherFeedbackRequest(BaseModel):
+	feedback: str
+
+
+@router.put('/{session_id}/feedback', response_model=StudentSessionPublic)
+def save_teacher_feedback(
+	session: SessionDep,
+	current_user: CurrentTeacherUser,
+	session_id: str,
+	body: TeacherFeedbackRequest,
+) -> StudentSession:
+	"""
+	Professor salva devolutiva em uma sessão encerrada do aluno
+	"""
+	student_session = session_crud.get_student_session_by_id(session, session_id)
+	if not student_session:
+		raise HTTPException(status_code=404, detail='Session not found')
+
+	problem = problem_crud.get_problem_by_id(session, student_session.problem_id)
+	if not problem:
+		raise HTTPException(status_code=404, detail='Problem not found')
+
+	classroom = classroom_crud.get_classroom_by_id(session, problem.classroom_id)
+	if not classroom or str(classroom.teacher_id) != str(current_user.id):
+		raise HTTPException(
+			status_code=403, detail='Not authorized to access this session'
+		)
+
+	student_session.teacher_feedback = body.feedback
+	session.add(student_session)
+	session.commit()
+	session.refresh(student_session)
+	return student_session

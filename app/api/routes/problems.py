@@ -6,11 +6,14 @@ from pydantic import BaseModel
 from gpt_teacher_db.gpt_teacher.models.problem import (
 	Problem,
 	ProblemCreate,
+	BankProblemCreate,
 	ProblemUpdate,
 	ProblemPublic,
 )
 from gpt_teacher_db.gpt_teacher.models.teacher import Teacher
 from gpt_teacher_db.gpt_teacher.models.student import Student
+
+from gpt_teacher_db.gpt_teacher.models.student_session import StudentSessionPublic
 
 from app.api.deps import (
 	SessionDep,
@@ -20,6 +23,8 @@ from app.api.deps import (
 )
 from app.cruds import classroom as classroom_crud
 from app.cruds import problem as problem_crud
+from app.cruds import student_session as session_crud
+from app.cruds.classroom import BANK_CLASSROOM_NAME
 
 
 router = APIRouter(tags=['problems'])
@@ -44,6 +49,7 @@ async def create_problem(
 	title: Annotated[str, Form()],
 	description: Annotated[str, Form()],
 	category: Annotated[str | None, Form()] = None,
+	list_id: Annotated[str | None, Form()] = None,
 	file: UploadFile = File(None),
 ) -> Problem:
 	"""
@@ -63,11 +69,13 @@ async def create_problem(
 	if file:
 		file_path = f'uploads/{file.filename}'
 
+	from uuid import UUID as _UUID
 	problem_in = ProblemCreate(
 		title=title,
 		description=description,
 		category=category,
 		classroom_id=classroom_id,
+		list_id=_UUID(list_id) if list_id else None,
 	)
 
 	problem = problem_crud.create_problem(
@@ -277,3 +285,143 @@ def suggest_problem(
 		title='Problema sugerido pela IA',
 		description='Descrição sugerida pela IA baseada no arquivo fornecido.',
 	)
+
+
+@router.get(
+	'/classrooms/{classroom_id}/problems/{problem_id}/sessions',
+	response_model=list[StudentSessionPublic],
+)
+def get_problem_sessions_for_teacher(
+	session: SessionDep,
+	current_user: CurrentTeacherUser,
+	classroom_id: str,
+	problem_id: str,
+):
+	"""
+	Professor: lista todas as sessões de alunos para um problema específico.
+	Permite ver quem abriu, tentou ou encerrou (entregou) o exercício.
+	"""
+	classroom = classroom_crud.get_classroom_by_id(session, classroom_id)
+	if not classroom:
+		raise HTTPException(status_code=404, detail='Classroom not found')
+
+	if classroom.teacher_id != current_user.id:
+		raise HTTPException(
+			status_code=403, detail='Not authorized to access this classroom'
+		)
+
+	problem = problem_crud.get_problem_by_id(session, problem_id)
+	if not problem or str(problem.classroom_id) != str(classroom_id):
+		raise HTTPException(status_code=404, detail='Problem not found')
+
+	sessions = session_crud.get_sessions_by_problem(session, problem_id)
+	return sessions
+
+
+# ── Banco de problemas do professor ──────────────────────────────────────────
+
+
+@router.post('/teachers/me/bank-problems', response_model=ProblemPublic)
+async def create_bank_problem(
+	session: SessionDep,
+	current_user: CurrentTeacherUser,
+	title: Annotated[str, Form()],
+	description: Annotated[str | None, Form()] = None,
+	category: Annotated[str | None, Form()] = None,
+	file: UploadFile = File(None),
+) -> Problem:
+	"""
+	Cria problema no banco pessoal do professor
+	"""
+	bank_classroom = classroom_crud.get_or_create_bank_classroom(
+		session, current_user.id
+	)
+
+	file_path = None
+	if file:
+		file_path = f'uploads/{file.filename}'
+
+	problem_in = BankProblemCreate(
+		title=title,
+		description=description,
+		category=category,
+	)
+
+	return problem_crud.create_bank_problem(
+		session, problem_in, bank_classroom.id, file_path=file_path
+	)
+
+
+@router.get('/teachers/me/bank-problems', response_model=list[ProblemPublic])
+def get_bank_problems(
+	session: SessionDep,
+	current_user: CurrentTeacherUser,
+):
+	"""
+	Lista todos os problemas do banco pessoal do professor
+	"""
+	bank_classroom = classroom_crud.get_or_create_bank_classroom(
+		session, current_user.id
+	)
+	return problem_crud.get_bank_problems_by_classroom(session, bank_classroom.id)
+
+
+def _assert_bank_problem_owner(problem: Problem, teacher_id: str) -> None:
+	"""Garante que o problema pertence à turma-banco do professor"""
+	classroom = problem.classroom
+	if not classroom or classroom.name != BANK_CLASSROOM_NAME:
+		raise HTTPException(status_code=404, detail='Problem not found')
+	if str(classroom.teacher_id) != str(teacher_id):
+		raise HTTPException(
+			status_code=403, detail='Not authorized to access this problem'
+		)
+
+
+@router.get('/teachers/me/bank-problems/{id}', response_model=ProblemPublic)
+def get_bank_problem(
+	session: SessionDep,
+	current_user: CurrentTeacherUser,
+	id: str,
+) -> Problem:
+	"""
+	Detalhe de um problema do banco pessoal
+	"""
+	problem = problem_crud.get_problem_by_id(session, id)
+	if not problem:
+		raise HTTPException(status_code=404, detail='Problem not found')
+	_assert_bank_problem_owner(problem, current_user.id)
+	return problem
+
+
+@router.put('/teachers/me/bank-problems/{id}', response_model=ProblemPublic)
+def update_bank_problem(
+	session: SessionDep,
+	current_user: CurrentTeacherUser,
+	id: str,
+	problem_in: ProblemUpdate,
+) -> Problem:
+	"""
+	Atualiza problema do banco pessoal
+	"""
+	problem = problem_crud.get_problem_by_id(session, id)
+	if not problem:
+		raise HTTPException(status_code=404, detail='Problem not found')
+	_assert_bank_problem_owner(problem, current_user.id)
+	return problem_crud.update_problem(session, problem, problem_in)
+
+
+@router.delete('/teachers/me/bank-problems/{id}')
+def delete_bank_problem(
+	session: SessionDep,
+	current_user: CurrentTeacherUser,
+	id: str,
+):
+	"""
+	Remove problema do banco pessoal
+	"""
+	problem = problem_crud.get_problem_by_id(session, id)
+	if not problem:
+		raise HTTPException(status_code=404, detail='Problem not found')
+	_assert_bank_problem_owner(problem, current_user.id)
+	problem_crud.delete_problem(session, problem)
+	return {'message': 'Problem deleted successfully'}

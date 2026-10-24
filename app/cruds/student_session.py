@@ -72,6 +72,18 @@ def close_active_sessions(session: Session, student_id: str) -> None:
 	session.commit()
 
 
+def get_sessions_by_problem(
+	session: Session, problem_id: str
+) -> list[StudentSession]:
+	"""Lista todas as sessões de um problema (para o professor)"""
+	statement = (
+		select(StudentSession)
+		.where(StudentSession.problem_id == problem_id)
+		.order_by(StudentSession.created_at.desc())
+	)
+	return list(session.exec(statement).all())
+
+
 def get_sessions_by_problem_and_student(
 	session: Session, problem_id: str, student_id: str
 ) -> list[StudentSession]:
