@@ -11,6 +11,8 @@ from gpt_teacher_db.gpt_teacher.models.classroom_student import (
 from gpt_teacher_db.gpt_teacher.models.student import Student
 from gpt_teacher_db.gpt_teacher.enum import TeachingMethodology
 
+BANK_CLASSROOM_NAME = '__BANK__'
+
 
 def create_classroom(
 	session: Session, classroom_in: ClassroomCreate, teacher_id: str
@@ -36,9 +38,32 @@ def get_classroom_by_id(
 def get_classrooms_by_teacher(
 	session: Session, teacher_id: str
 ) -> list[Classroom]:
-	"""Lista todas as turmas de um professor"""
-	statement = select(Classroom).where(Classroom.teacher_id == teacher_id)
+	"""Lista todas as turmas de um professor (exclui turma-banco oculta)"""
+	statement = select(Classroom).where(
+		Classroom.teacher_id == teacher_id,
+		Classroom.name != BANK_CLASSROOM_NAME,
+	)
 	return list(session.exec(statement).all())
+
+
+def get_or_create_bank_classroom(
+	session: Session, teacher_id: str
+) -> Classroom:
+	"""Retorna (ou cria) a turma-banco oculta do professor"""
+	statement = select(Classroom).where(
+		Classroom.teacher_id == teacher_id,
+		Classroom.name == BANK_CLASSROOM_NAME,
+	)
+	classroom = session.exec(statement).first()
+	if not classroom:
+		classroom = Classroom(
+			name=BANK_CLASSROOM_NAME,
+			teacher_id=teacher_id,
+		)
+		session.add(classroom)
+		session.commit()
+		session.refresh(classroom)
+	return classroom
 
 
 def update_classroom(

@@ -1,15 +1,17 @@
 from sqlmodel import Session, select
 
 from gpt_teacher_db.gpt_teacher.models.consolidated import Consolidated
+from gpt_teacher_db.gpt_teacher.models.student_session import StudentSession
 
 
 def get_consolidations_by_student(
 	session: Session, student_id: str
 ) -> list[Consolidated]:
-	"""Lista todas as consolidações de um aluno"""
+	"""Lista todas as consolidações de um aluno (via join com StudentSession)"""
 	statement = (
 		select(Consolidated)
-		.where(Consolidated.student_id == student_id)
+		.join(StudentSession, Consolidated.session_id == StudentSession.id)
+		.where(StudentSession.student_id == student_id)
 		.order_by(Consolidated.created_at.desc())
 	)
 

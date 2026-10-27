@@ -11,6 +11,8 @@ from app.api.routes import (
 	student_sessions,
 	chat_messages,
 	consolidations,
+	feedback,
+	exercise_lists,
 )
 
 app = FastAPI(
@@ -42,6 +44,8 @@ app.include_router(
 )
 app.include_router(chat_messages.router, prefix=f'{settings.API_V1_STR}')
 app.include_router(consolidations.router, prefix=f'{settings.API_V1_STR}')
+app.include_router(feedback.router, prefix=f'{settings.API_V1_STR}')
+app.include_router(exercise_lists.router, prefix=f'{settings.API_V1_STR}')
 
 
 @app.get('/')
